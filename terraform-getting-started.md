@@ -1,10 +1,10 @@
 # Build infrastructure with Terraform
 
-[Terraform](https://developer.hashicorp.com/terraform/intro "Intro to Terraform") is a tool that lets you define, provision, and manage infrastructure using configuration files. Instead of clicking through a web console or running commands by hand, you write files that describe what your infrastructure should look like and let Terraform build it for you. This approach, known as [infrastructure as code (IaC)](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code), makes your infrastructure repeatable, auditable, and easy to share.
+[Terraform](https://developer.hashicorp.com/terraform/intro "Intro to Terraform") is a tool that lets you create, change, and manage infrastructure using code. You write configuration files that describe your resources, and Terraform builds the infrastructure. This approach, called [infrastructure as code (IaC)](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code), makes infrastructure predictable, repeatable, and shareable across teams and environments.
 
-This tutorial shows how to use Terraform to run an NGINX web server in a Docker container. You follow the same workflow used to manage infrastructure in production environments.
+In this tutorial, you use Terraform to run an NGINX web server in a Docker container. You follow the same workflow engineers use in production environments.
 
-In this tutorial, you learn to:
+By the end of this tutorial, you will be able to:
 
 - Define infrastructure in a Terraform configuration file
 - Initialize a Terraform working directory
@@ -32,7 +32,7 @@ $ mkdir terraform-demo
 $ cd terraform-demo
 ```
 
-Next, create a configuration file called `main.tf`. Configuration files describe your infrastructure in Terraform, and Terraform reads all `.tf` files in the working directory when it runs.
+Next, create a configuration file called `main.tf`. Configuration files describe your infrastructure and tell Terraform what to build.
 
 ```shell
 $ touch main.tf
@@ -71,17 +71,16 @@ resource "docker_container" "nginx" {
 
 This configuration defines four blocks:
 
-| Block | Purpose |
+| **BLOCK** | **PURPOSE** |
 |---|---|
-| `terraform {}` | Declares the required providers and version constraints for this configuration |
-| `provider "docker"` | Configures the Docker [provider](https://developer.hashicorp.com/terraform/language/providers) and connects it to your local Docker daemon |
-| `resource "docker_image" "nginx"` | Pulls the `nginx:latest` image from Docker Hub |
-| `resource "docker_container" "nginx"` | Creates a running container from that image and maps port 80 |
+| [`terraform {}`](https://developer.hashicorp.com/terraform/language/block/terraform) | Declares the required [provider](https://developer.hashicorp.com/terraform/language/providers) (Docker) and version constraint |
+| [`provider "docker"`](https://developer.hashicorp.com/terraform/language/block/provider) | Configures Terraform to manage Docker on your local machine |
+| [`resource "docker_image" "nginx"`](https://developer.hashicorp.com/terraform/language/block/resource) | Downloads the `nginx:latest` image from Docker Hub |
+| [`resource "docker_container" "nginx"`](https://developer.hashicorp.com/terraform/language/block/resource) | Creates a running container from the image and maps port 80 to your machine |
 
 Review the following details:
 
-- **Version constraint:** `version = "~> 3.0"` allows any 3.x release of the provider. We recommend always specifying a version constraint to make your configuration reproducible. Without one, Terraform installs the latest available version, which may introduce breaking changes.
-- **Resource reference:** `docker_image.nginx.image_id` tells Terraform to use the image ID produced by the `docker_image` resource. Terraform reads this dependency automatically and always pulls the image before creating the container.
+- **Version constraint:** `version = "~> 3.0"` allows any 3.x release of the provider. Specifying a version ensures your configuration works the same way every time. Without it, Terraform installs the latest provider, which may introduce breaking changes.
 - **Image cleanup:** `keep_locally = false` tells Terraform to remove the NGINX image from your machine when you run `terraform destroy`. Set this to `true` if you want to keep the image locally after destroying the container.
 
 > [!NOTE]
@@ -89,13 +88,15 @@ Review the following details:
 
 ## Initialize the working directory
 
-Run `terraform init` to set up your working directory. Terraform downloads the required provider.
+When you create a new Terraform configuration, you must initialize the working directory. Initialization downloads the required providers and prepares Terraform to build your infrastructure.
+
+Run `terraform init` to initialize your working directory and download the Docker provider plugin specified in your configuration.
 
 ```shell
 $ terraform init
 ```
 
-Terraform displays the following output. Output is truncated for readability.
+Terraform displays the following output, including the provider version it downloads.
 
 ```text
 Initializing the backend...
@@ -112,9 +113,9 @@ any changes that are required for your infrastructure. All Terraform commands
 should now work.
 ```
 
-Terraform creates a `.terraform/` directory in your project folder and downloads the provider plugin into it. It also creates a [`.terraform.lock.hcl`](https://developer.hashicorp.com/terraform/language/files/dependency-lock) file that records the exact provider version installed. Commit this file to version control so your team uses the same provider version.
-
 If you see any errors, confirm that Docker Desktop is running and try again.
+
+To learn more about the files Terraform creates during initialization, see the [dependency lock file documentation](https://developer.hashicorp.com/terraform/language/files/dependency-lock).
 
 ## Provision the infrastructure
 
@@ -157,7 +158,7 @@ Do you want to perform these actions?
 
 Review the plan carefully. Each line beginning with `+` represents a resource Terraform will create. Enter `yes` to confirm.
 
-Terraform then provisions your infrastructure:
+Terraform builds your infrastructure:
 
 ```text
 docker_image.nginx: Creating...
@@ -171,14 +172,16 @@ Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 Open a browser and go to [http://localhost:80](http://localhost:80). The NGINX welcome page confirms the container is running.
 
 > [!NOTE]
-> Terraform stores information about your infrastructure in a file named `terraform.tfstate`. It uses this file to track resources and determine what changes to make when you run commands like `terraform apply` or `terraform destroy`.
+> Terraform stores information about your infrastructure in a file named `terraform.tfstate`. It uses this state file to track resources and determine what changes to make when you run commands like `terraform apply` or `terraform destroy`.
 
 > [!WARNING]
 > The [state](https://developer.hashicorp.com/terraform/language/state) file may contain sensitive data. Do not commit it to version control.
 
 ## Destroy the infrastructure
 
-Run `terraform destroy` to remove all resources that Terraform created.
+When you no longer need infrastructure, you can destroy it to save resources, avoid extra costs, and reduce security risks.
+
+Run `terraform destroy` to remove all resources that Terraform created in this tutorial.
 
 ```shell
 $ terraform destroy
@@ -210,7 +213,7 @@ Do you really want to destroy all resources?
   Enter a value: 
 ```
 
-Enter `yes` to confirm. Terraform then removes the container and image.
+Enter `yes` to confirm. Terraform removes the NGINX container and image from your machine.
 
 ```text
 docker_container.nginx: Destroying...
@@ -222,17 +225,17 @@ Destroy complete! Resources: 2 destroyed.
 ```
 
 > [!WARNING]
-> `terraform destroy` permanently removes all resources Terraform manages in the current working directory. In a production environment, always review the destruction plan before confirming.
+> `terraform destroy` permanently removes your infrastructure. Always review the plan carefully before entering `yes`.
 
 ## Next steps
 
-In this tutorial, you provisioned and destroyed a Docker container using Terraform. Infrastructure as code makes your systems repeatable, reviewable, and consistent.
+In this tutorial, you wrote your first Terraform configuration, initialized a working directory, and used `terraform apply` and `terraform destroy` to create and remove a Docker container. These are the core commands engineers use to deploy and manage infrastructure in production. Defining infrastructure as code helps your team work faster, reduce errors, and replicate environments consistently.
 
 Continue to the [Use input variables](https://developer.hashicorp.com/terraform/tutorials/docker-get-started/docker-variables) tutorial to make your configuration more flexible and reusable by replacing hard-coded values with variables.
 
-To go deeper on the concepts introduced in this tutorial:
+To build on what you learned:
 
-- Read the [Terraform language documentation](https://developer.hashicorp.com/terraform/language) to learn HCL syntax, expressions, and built-in functions
-- Explore the [kreuzwerker Docker provider](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) for the full reference of the Docker provider used in this tutorial
+- Read the [Terraform language documentation](https://developer.hashicorp.com/terraform/language) to learn the syntax used to write configuration files
+- Explore the [kreuzwerker Docker provider](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) to learn more about the Docker provider you used in this tutorial
 - Review the [Terraform state documentation](https://developer.hashicorp.com/terraform/language/state) to learn how Terraform uses `terraform.tfstate` to track and manage your infrastructure
 - Discover [Terraform use cases](https://developer.hashicorp.com/terraform/intro/use-cases) across different industries and infrastructure types
