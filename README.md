@@ -1,2 +1,2 @@
-# ibm-education-engineer-assignment
-Education Engineer Technical Assignment - Terraform Tutorial Improvements
+# IBM Education Interview Assignment
+This repository contains my submission for the IBM Education Engineer technical writing assignment.
