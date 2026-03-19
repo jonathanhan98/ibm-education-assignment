@@ -1,16 +1,18 @@
 # Build infrastructure with Terraform
 
-[Terraform](https://developer.hashicorp.com/terraform/intro "Intro to Terraform") is an [infrastructure as code (IaC)](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code) tool that lets you define, provision, and manage infrastructure using configuration files instead of manual processes. Instead of clicking through a web console or running commands by hand, you write files that describe what your infrastructure should look like and let Terraform build it for you. This makes your infrastructure repeatable, auditable, and easy to share across a team.
+[Terraform](https://developer.hashicorp.com/terraform/intro "Intro to Terraform") is a tool that lets you define, provision, and manage infrastructure using configuration files. Instead of clicking through a web console or running commands by hand, you write files that describe what your infrastructure should look like and let Terraform build it for you. This approach, known as [infrastructure as code (IaC)](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/infrastructure-as-code), makes your infrastructure repeatable, auditable, and easy to share.
 
-In this tutorial, you will:
+This tutorial shows how to use Terraform to run an NGINX web server in a Docker container. You follow the same workflow used to manage infrastructure in production environments.
 
-- Write a Terraform configuration file that provisions an NGINX web server in a Docker container
-- Initialize a Terraform working directory and install the required provider
-- Provision infrastructure with `terraform apply`
-- Destroy infrastructure with `terraform destroy`
+In this tutorial, you learn to:
+
+- Define infrastructure in a Terraform configuration file
+- Initialize a Terraform working directory
+- Create and manage resources with `terraform apply`
+- Remove resources with `terraform destroy`
 
 > [!NOTE]
-> This tutorial uses Docker to run infrastructure locally on your machine. The same Terraform workflow applies when managing infrastructure on cloud platforms like AWS, Azure, and Google Cloud.
+> This tutorial uses Docker to run infrastructure locally. The same Terraform workflow applies when managing infrastructure on cloud platforms like AWS, Azure, and Google Cloud.
 
 ## Prerequisites
 
@@ -19,20 +21,18 @@ Before you begin, install the following tools:
 - [Terraform](https://developer.hashicorp.com/terraform/tutorials/docker-get-started/install-cli) v1.0.0 or later
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) v4.0.0 or later
 
-After installing Docker Desktop, open the application and confirm it shows **"Docker Desktop is running"** in the menu bar before continuing. Terraform communicates with Docker through a background process called the Docker daemon, and all commands will fail if Docker is not running.
+Confirm Docker Desktop is running before you continue.
 
 ## Set up your project
 
-Create a new directory for your Terraform configuration and navigate into it.
+Create a new directory for your Terraform project and navigate into it.
 
 ```shell
 $ mkdir terraform-demo
 $ cd terraform-demo
 ```
 
-Keep configuration files in their own directory. Terraform generates several files during initialization and planning, and an isolated directory keeps your project organized.
-
-Next, create a file called `main.tf`. Terraform reads all `.tf` files in the working directory when it runs.
+Next, create a configuration file called `main.tf`. Configuration files describe your infrastructure in Terraform, and Terraform reads all `.tf` files in the working directory when it runs.
 
 ```shell
 $ touch main.tf
@@ -78,7 +78,7 @@ This configuration defines four blocks:
 | `resource "docker_image" "nginx"` | Pulls the `nginx:latest` image from Docker Hub |
 | `resource "docker_container" "nginx"` | Creates a running container from that image and maps port 80 |
 
-Note the following before continuing:
+Review the following details:
 
 - **Version constraint:** `version = "~> 3.0"` allows any 3.x release of the provider. We recommend always specifying a version constraint to make your configuration reproducible. Without one, Terraform installs the latest available version, which may introduce breaking changes.
 - **Resource reference:** `docker_image.nginx.image_id` tells Terraform to use the image ID produced by the `docker_image` resource. Terraform reads this dependency automatically and always pulls the image before creating the container.
@@ -89,13 +89,13 @@ Note the following before continuing:
 
 ## Initialize the working directory
 
-Run `terraform init` to prepare your working directory. Terraform downloads the Docker provider plugin declared in your configuration.
+Run `terraform init` to set up your working directory. Terraform downloads the required provider.
 
 ```shell
 $ terraform init
 ```
 
-Terraform displays output similar to the following. We have truncated some of the output to save space.
+Terraform displays the following output. Output is truncated for readability.
 
 ```text
 Initializing the backend...
@@ -155,7 +155,9 @@ Do you want to perform these actions?
   Enter a value: 
 ```
 
-Review the plan carefully. Each line beginning with `+` represents a resource Terraform will create. When you are ready, type `yes` and press **Enter**.
+Review the plan carefully. Each line beginning with `+` represents a resource Terraform will create. Enter `yes` to confirm.
+
+Terraform then provisions your infrastructure:
 
 ```text
 docker_image.nginx: Creating...
@@ -166,10 +168,13 @@ docker_container.nginx: Creation complete after 1s
 Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 ```
 
-Open a browser and navigate to http://localhost:80. The NGINX welcome page confirms the container is running and reachable on port 80.
+Open a browser and go to [http://localhost:80](http://localhost:80). The NGINX welcome page confirms the container is running.
 
 > [!NOTE]
-> Terraform writes the [state](https://developer.hashicorp.com/terraform/language/state) of your infrastructure to a file called `terraform.tfstate` in your working directory. Terraform uses this file to track which resources it manages so it can update or destroy them later. Treat this file as sensitive, as it may contain passwords, keys, or other secrets depending on your provider. Do not commit it to version control.
+> Terraform stores information about your infrastructure in a file named `terraform.tfstate`. It uses this file to track resources and determine what changes to make when you run commands like `terraform apply` or `terraform destroy`.
+
+> [!WARNING]
+> The [state](https://developer.hashicorp.com/terraform/language/state) file may contain sensitive data. Do not commit it to version control.
 
 ## Destroy the infrastructure
 
@@ -205,7 +210,7 @@ Do you really want to destroy all resources?
   Enter a value: 
 ```
 
-Type `yes` and press **Enter**. Terraform removes the container and image.
+Enter `yes` to confirm. Terraform then removes the container and image.
 
 ```text
 docker_container.nginx: Destroying...
@@ -216,12 +221,12 @@ docker_image.nginx: Destruction complete after 0s
 Destroy complete! Resources: 2 destroyed.
 ```
 
-> [!Warning]
+> [!WARNING]
 > `terraform destroy` permanently removes all resources Terraform manages in the current working directory. In a production environment, always review the destruction plan before confirming.
 
 ## Next steps
 
-In this tutorial, you provisioned and destroyed a Docker container using Terraform. Managing infrastructure as code means your infrastructure is now repeatable, reviewable, and consistent, eliminating the manual steps and configuration drift that cause problems in production environments.
+In this tutorial, you provisioned and destroyed a Docker container using Terraform. Infrastructure as code makes your systems repeatable, reviewable, and consistent.
 
 Continue to the [Use input variables](https://developer.hashicorp.com/terraform/tutorials/docker-get-started/docker-variables) tutorial to make your configuration more flexible and reusable by replacing hard-coded values with variables.
 
